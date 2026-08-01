@@ -1,5 +1,7 @@
 # Feuillets Grammalecte
 
+Projet autonome : [Sargon01/feuillets-grammalecte](https://github.com/Sargon01/Feuillets-Grammalecte).
+
 **Feuillets Grammalecte** est le greffon compagnon officiel d'analyse linguistique pour le studio d'écriture [Feuillets](https://github.com/Sargon01/Feuillets). Il embarque localement le moteur de correction grammaticale et orthographique **Grammalecte** pour offrir une relecture fluide et confidentielle directement dans Obsidian.
 
 > **Avertissement** : Ce projet est une intégration indépendante développée pour Obsidian et **n'est pas le projet officiel Grammalecte**.

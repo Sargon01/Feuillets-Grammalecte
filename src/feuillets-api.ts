@@ -7,9 +7,8 @@
  * dépôt : le contrat ne peut pas dériver en silence, le typecheck du
  * compagnon casse si Feuillets change son API.
  *
- * Si ce dossier était un jour extrait dans son propre dépôt, ce chemin est le
- * SEUL point à changer (vers un `feuillets-api.d.ts` vendu ou un paquet de
- * types) — tout le reste du compagnon importe depuis ce fichier. */
+ * Le contrat type-only local ci-dessous permet au dépôt autonome de
+ * typechecker sans dépendre du clone du dépôt principal. */
 
 import type { App } from "obsidian";
 import type {
@@ -19,7 +18,7 @@ import type {
   TextAnalysisInput,
   TextAnalysisIssue,
   TextAnalysisProvider,
-} from "../../src/api/text-analysis.ts";
+} from "./feuillets-api-types.ts";
 
 export type {
   FeuilletsPublicApi,

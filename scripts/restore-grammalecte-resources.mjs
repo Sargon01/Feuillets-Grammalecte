@@ -1,16 +1,15 @@
-/* Restaure le moteur Grammalecte dans resources/grammalecte/.
+/* Vérifie/restaure le moteur Grammalecte dans resources/grammalecte/.
  *
- * Les 9,2 Mo de règles et de dictionnaire ne sont pas commités (voir
- * .gitignore) : ils vivent déjà dans l'historique Git de Feuillets, à
- * l'arborescence `resources/grammalecte/` du commit ci-dessous — le dernier
- * avant leur retrait du dépôt. On les en extrait, sans réseau, sans archive
- * à vérifier, et de façon reproductible.
+ * Les ressources sont versionnées dans ce dépôt autonome afin qu'un clone
+ * puisse être construit sans dépendre de l'historique du dépôt principal.
+ * Pour les anciennes copies qui ne les ont pas encore, on conserve le
+ * mécanisme de restauration depuis l'historique local de Feuillets.
  *
  * `git cat-file` plutôt que `git checkout` : on écrit uniquement dans ce
  * dossier-ci, sans jamais toucher à l'index ni à l'arbre de travail. */
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -24,6 +23,11 @@ const SOURCE_PREFIX = "resources/grammalecte/";
 const companionDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoDir = path.resolve(companionDir, "..");
 const targetDir = path.join(companionDir, "resources", "grammalecte");
+
+if (entriesExist(targetDir)) {
+  console.log("Ressources Grammalecte déjà présentes dans resources/grammalecte/.");
+  process.exit(0);
+}
 
 const git = (args, options = {}) =>
   execFileSync("git", args, { cwd: repoDir, maxBuffer: 64 * 1024 * 1024, ...options });
@@ -62,3 +66,11 @@ console.log(
   `${entries.length} fichiers restaurés dans resources/grammalecte/ ` +
     `(${(bytes / 1024 / 1024).toFixed(1)} Mo).`
 );
+
+function entriesExist(directory) {
+  try {
+    return readdirSync(directory).length > 0;
+  } catch {
+    return false;
+  }
+}

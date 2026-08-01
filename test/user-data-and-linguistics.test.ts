@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { GrammalecteProvider } from "../src/grammalecte-provider.ts";
+import type { GrammalecteEngine } from "../src/grammalecte-adapter.ts";
 import { DEFAULT_SETTINGS, type GrammalecteSettings } from "../src/settings.ts";
 
 test("user-data : apprentissage d'un mot et persistance via saveSettings()", async () => {
@@ -56,7 +57,7 @@ test("user-data : filtrage des erreurs d'orthographe pour un mot appris, conserv
     suggest: () => [],
   };
 
-  const provider = new GrammalecteProvider(() => settings, undefined, () => fakeEngine as any);
+  const provider = new GrammalecteProvider(() => settings, undefined, () => fakeEngine as GrammalecteEngine);
 
   const issues = await provider.analyze({ text: "ezan teste inconnu" });
 
