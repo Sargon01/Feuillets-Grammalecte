@@ -15,10 +15,9 @@ import {
   analyseWithEngine,
   analyzeLinguisticsWithEngine,
   CATEGORY_SPELLING,
-  loadGrammalecteEngine,
   type GrammalecteEngine,
 } from "./grammalecte-adapter.ts";
-import { loadEmbeddedAssets } from "./grammalecte-assets.ts";
+import { GrammalecteWorkerRunner } from "./grammalecte-worker-runner.ts";
 import type { GrammalecteSettings } from "./settings.ts";
 
 export const PROVIDER_ID = "grammalecte";
@@ -33,10 +32,11 @@ export class GrammalecteProvider implements TextAnalysisProvider {
   readonly name = PROVIDER_NAME;
 
   private engine: GrammalecteEngine | null = null;
+  private worker: GrammalecteWorkerRunner | null = null;
   /** Chargement en cours : deux analyses lancées coup sur coup ne doivent
    *  pas charger le moteur deux fois. */
   private loading: Promise<GrammalecteEngine> | null = null;
-  private readonly loadEngine: EngineLoader;
+  private readonly loadEngine?: EngineLoader;
   private readonly getSettings: () => GrammalecteSettings;
   private readonly saveSettings?: () => Promise<void>;
 
@@ -53,17 +53,14 @@ export class GrammalecteProvider implements TextAnalysisProvider {
       this.saveSettings = saveSettingsOrLoadEngine as (() => Promise<void>);
       this.loadEngine = loadEngine;
     } else if (typeof saveSettingsOrLoadEngine === "function") {
-      this.saveSettings = saveSettingsOrLoadEngine as (() => Promise<void>);
-      this.loadEngine = saveSettingsOrLoadEngine as EngineLoader;
-    } else {
-      this.loadEngine = () => loadGrammalecteEngine(loadEmbeddedAssets());
+      this.saveSettings = saveSettingsOrLoadEngine as () => Promise<void>;
     }
   }
 
   /** true si le moteur est déjà en mémoire. Sert aux réglages (et aux tests)
    *  pour constater que rien n'est chargé avant la première analyse. */
   get isEngineLoaded(): boolean {
-    return this.engine !== null;
+    return this.engine !== null || this.worker?.isLoaded === true;
   }
 
   async ignoreOccurrence(issue: TextAnalysisIssue): Promise<void> {
@@ -88,20 +85,13 @@ export class GrammalecteProvider implements TextAnalysisProvider {
     const text = typeof input?.text === "string" ? input.text : "";
     if (text.trim() === "") return [];
 
-    const engine = await this.ensureEngine();
     const settings = this.getSettings();
-
-    /* window.setTimeout(0) : laisse l'interface afficher « Analyse en
-       cours… » avant le calcul, qui est synchrone et bloquant (pas de vrai
-       parallélisme possible — worker_threads n'est pas disponible dans le
-       process de rendu des greffons, et fork() y relance Obsidian lui-même). */
-    await nextTick();
-
-    const rawIssues = analyseWithEngine(engine, text, {
+    const options = {
       checkSpelling: settings.checkSpelling,
       detectRepetitions: settings.detectRepetitions,
       maxSuggestions: settings.maxSuggestions,
-    });
+    };
+    const rawIssues = this.loadEngine ? analyseWithEngine(await this.ensureEngine(), text, options) : await this.ensureWorker().analyze(text, options);
 
     const learnedSet = new Set((settings.learnedWords || []).map((w) => w.toLowerCase()));
 
@@ -124,9 +114,9 @@ export class GrammalecteProvider implements TextAnalysisProvider {
     const text = typeof input?.text === "string" ? input.text : "";
     if (text.trim() === "") return null;
 
-    const engine = await this.ensureEngine();
-    await nextTick();
-    return analyzeLinguisticsWithEngine(engine, text);
+    return this.loadEngine
+      ? analyzeLinguisticsWithEngine(await this.ensureEngine(), text)
+      : this.ensureWorker().analyzeLinguistics(text);
   }
 
   /** Chargement paresseux : le moteur n'est monté qu'ici, donc à la première
@@ -137,14 +127,11 @@ export class GrammalecteProvider implements TextAnalysisProvider {
     if (this.engine) return Promise.resolve(this.engine);
     if (this.loading) return this.loading;
 
+    const loader = this.loadEngine;
+    if (!loader) throw new Error("Fabrique de moteur Grammalecte absente.");
     this.loading = (async () => {
-      await nextTick();
-      const res = await this.loadEngine();
-      if (res && typeof (res as unknown as Partial<GrammalecteEngine>).parse === "function") {
-        this.engine = res;
-      } else {
-        this.engine = loadGrammalecteEngine(loadEmbeddedAssets());
-      }
+      const res = await loader();
+      this.engine = res;
       return this.engine;
     })();
 
@@ -153,20 +140,17 @@ export class GrammalecteProvider implements TextAnalysisProvider {
     });
   }
 
+  private ensureWorker(): GrammalecteWorkerRunner {
+    if (!this.worker) this.worker = new GrammalecteWorkerRunner();
+    return this.worker;
+  }
+
   /** Libère le moteur (et ses ~9 Mo) au déchargement du greffon. */
   dispose(): void {
     this.engine = null;
     this.loading = null;
+    this.worker?.dispose();
+    this.worker = null;
     this.ignoredSignatures.clear();
   }
-}
-
-function nextTick(): Promise<void> {
-  return new Promise((resolve) => {
-    const schedule =
-      typeof window !== "undefined" && typeof window.setTimeout === "function"
-        ? window.setTimeout
-        : setTimeout;
-    schedule(() => resolve(), 0);
-  });
 }

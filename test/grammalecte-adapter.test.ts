@@ -182,3 +182,14 @@ test("analyse : offsets exacts même avec des caractères accentués et hors BMP
   const issues = analyseWithEngine(engine, text, OPTIONS);
   assert.equal(text.slice(issues[0].start, issues[0].end), target);
 });
+
+test("analyse : une séquence Unicode décomposée conserve ses offsets", () => {
+  const text = "Cafe\u0301 inconnu.";
+  const target = "inconnu";
+  const start = text.indexOf(target);
+  const { engine } = fakeEngine({ [text]: [grammarError({ nStart: start, nEnd: start + target.length, sUnderlined: target })] });
+
+  const issues = analyseWithEngine(engine, text, OPTIONS);
+  assert.equal(text.slice(issues[0].start, issues[0].end), target);
+  assert.equal(text.length, 14, "la forme décomposée n'est pas normalisée");
+});

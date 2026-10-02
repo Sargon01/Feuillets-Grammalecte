@@ -174,7 +174,7 @@ function fakeEngine(errors: GrammalecteError[] = []): GrammalecteEngine {
 
 test("paresse : le moteur n'est pas chargé avant la première analyse", async () => {
   let loads = 0;
-  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, () => { loads += 1; return fakeEngine(); });
+  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, undefined, () => { loads += 1; return fakeEngine(); });
 
   assert.equal(loads, 0, "aucun chargement à la construction");
   assert.equal(provider.isEngineLoaded, false);
@@ -189,7 +189,7 @@ test("paresse : le moteur n'est pas chargé avant la première analyse", async (
 
 test("paresse : deux analyses simultanées ne chargent le moteur qu'une fois", async () => {
   let loads = 0;
-  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, () => { loads += 1; return fakeEngine(); });
+  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, undefined, () => { loads += 1; return fakeEngine(); });
 
   await Promise.all([provider.analyze({ text: "A." }), provider.analyze({ text: "B." })]);
   assert.equal(loads, 1);
@@ -197,7 +197,7 @@ test("paresse : deux analyses simultanées ne chargent le moteur qu'une fois", a
 
 test("paresse : un texte vide n'entraîne aucun chargement", async () => {
   let loads = 0;
-  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, () => { loads += 1; return fakeEngine(); });
+  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, undefined, () => { loads += 1; return fakeEngine(); });
 
   assert.deepEqual(await provider.analyze({ text: "   \n  " }), []);
   assert.equal(loads, 0);
@@ -205,7 +205,7 @@ test("paresse : un texte vide n'entraîne aucun chargement", async () => {
 
 test("paresse : un échec de chargement remonte et reste réessayable", async () => {
   let attempts = 0;
-  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, () => {
+  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, undefined, () => {
     attempts += 1;
     if (attempts === 1) throw new Error("Moteur Grammalecte introuvable");
     return fakeEngine();
@@ -221,7 +221,7 @@ test("paresse : un échec de chargement remonte et reste réessayable", async ()
 
 test("nettoyage : dispose() libère le moteur", async () => {
   let loads = 0;
-  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, () => { loads += 1; return fakeEngine(); });
+  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, undefined, () => { loads += 1; return fakeEngine(); });
 
   await provider.analyze({ text: "Un texte." });
   provider.dispose();
@@ -235,7 +235,7 @@ test("nettoyage : dispose() libère le moteur", async () => {
 
 test("analyse : le fournisseur rend des signalements aux offsets du texte reçu", async () => {
   const text = "Le chat dorment.";
-  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, () =>
+  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, undefined, () =>
     fakeEngine([
       {
         nStart: 3,
@@ -256,7 +256,7 @@ test("analyse : le fournisseur rend des signalements aux offsets du texte reçu"
 });
 
 test("analyse : le fournisseur ignore la sélection — Feuillets lui a déjà découpé le texte", async () => {
-  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, () =>
+  const provider = new GrammalecteProvider(() => DEFAULT_SETTINGS, undefined, () =>
     fakeEngine([
       { nStart: 0, nEnd: 4, sRuleId: "r", sMessage: "m", aSuggestions: [], sUnderlined: "chat" },
     ])
@@ -287,7 +287,7 @@ test("réglages : un data.json abîmé retombe sur des valeurs valides", () => {
 
 test("réglages : les réglages sont relus à chaque analyse, pas figés au chargement", async () => {
   const settings = { ...DEFAULT_SETTINGS, maxSuggestions: 1 };
-  const provider = new GrammalecteProvider(() => settings, () =>
+  const provider = new GrammalecteProvider(() => settings, undefined, () =>
     fakeEngine([
       { nStart: 0, nEnd: 4, sRuleId: "r", sMessage: "m", aSuggestions: ["a", "b", "c"], sUnderlined: "chat" },
     ])

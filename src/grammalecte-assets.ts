@@ -6,10 +6,8 @@
  * d'Obsidian. Aucune écriture disque, aucun réseau — tout se fait en
  * mémoire. */
 
-/* eslint-disable @typescript-eslint/no-require-imports -- require paresseux volontaire : zlib, seulement au premier usage */
-/* global require -- fourni par l'environnement Electron */
-
 import { Platform } from "obsidian";
+import { brotliDecompressSync } from "node:zlib";
 import { GRAMMALECTE_ARCHIVE_BASE64 } from "./grammalecte-archive.ts";
 
 /** Ressources reconstituées : chemin POSIX ("fr/conj.js") -> contenu texte. */
@@ -44,10 +42,9 @@ export function decodeArchive(base64: string): AssetMap {
       "Le moteur Grammalecte nécessite Obsidian de bureau (module Node `zlib`) — indisponible sur cet appareil."
     );
   }
-  const zlib = require("zlib") as typeof import("zlib");
   let raw: Buffer;
   try {
-    raw = zlib.brotliDecompressSync(Buffer.from(base64, "base64"));
+    raw = brotliDecompressSync(Buffer.from(base64, "base64"));
   } catch (error) {
     throw new GrammalecteArchiveError("Archive Grammalecte illisible (décompression impossible).", {
       cause: error,
@@ -81,5 +78,3 @@ export function decodeArchive(base64: string): AssetMap {
 export function loadEmbeddedAssets(): AssetMap {
   return decodeArchive(GRAMMALECTE_ARCHIVE_BASE64);
 }
-
-/* eslint-enable @typescript-eslint/no-require-imports -- fin du bloc require paresseux */

@@ -1,0 +1,1 @@
+export const GRAMMALECTE_WORKER_SOURCE = "";

@@ -9,12 +9,20 @@ const sharedGlobals = {
   clearTimeout: "readonly",
   globalThis: "readonly",
   HTMLElement: "readonly",
-  // Node : require("fs")/require("vm") côté desktop, et scripts CLI.
+  // Node et les scripts CLI.
   require: "readonly",
   module: "readonly",
   process: "readonly",
   __dirname: "readonly",
   URL: "readonly",
+  Buffer: "readonly",
+  self: "readonly",
+  __grammalecteAssets: "readonly",
+  conj: "readonly",
+  phonet: "readonly",
+  mfsp: "readonly",
+  gc_engine: "readonly",
+  text: "readonly",
 };
 
 export default [

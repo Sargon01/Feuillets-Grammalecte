@@ -97,7 +97,7 @@ test("user-data : ignorance d'une occurrence en mémoire (session seule, pas dan
     suggest: () => [],
   };
 
-  const provider = new GrammalecteProvider(() => settings, undefined, () => fakeEngine as any);
+  const provider = new GrammalecteProvider(() => settings, undefined, () => fakeEngine as GrammalecteEngine);
 
   const initialIssues = await provider.analyze({ text: "pomme fotee" });
   assert.equal(initialIssues.length, 2);
@@ -137,7 +137,7 @@ test("analyse linguistique : richesse lexicale, lemmes, adverbes -ment, voix pas
     },
   };
 
-  const provider = new GrammalecteProvider(() => settings, undefined, () => fakeEngine as any);
+  const provider = new GrammalecteProvider(() => settings, undefined, () => fakeEngine as GrammalecteEngine);
 
   const res = await provider.analyzeLinguistics({ text: "Il était frappé grandement en marchant. C'était beau." });
   assert.ok(res);

@@ -1,5 +1,4 @@
-/* Archive embarquée : encodage au build, reconstitution au premier usage, et
-   isolation du moteur dans son contexte vm.
+/* Archive embarquée : encodage au build et reconstitution au premier usage.
 
    Les tests de bout en bout (moteur réel, 9,3 Mo) ne s'exécutent que si les
    sources ont été restaurées par `npm run resources` — inutile d'imposer ce
@@ -12,7 +11,7 @@ import path from "node:path";
 import { brotliCompressSync } from "node:zlib";
 import { decodeArchive, GrammalecteArchiveError } from "../src/grammalecte-assets.ts";
 import { buildArchiveBase64 } from "../scripts/build-grammalecte-archive.mjs";
-import { loadGrammalecteEngine, analyseWithEngine, GrammalecteEngineError } from "../src/grammalecte-adapter.ts";
+import { buildWorkerSource } from "../scripts/build-grammalecte-worker.mjs";
 
 const RESOURCES_DIR = path.resolve(import.meta.dirname, "..", "resources", "grammalecte");
 const HAS_RESOURCES = existsSync(path.join(RESOURCES_DIR, "graphspell", "_dictionaries", "fr-classic.json"));
@@ -64,15 +63,6 @@ test("archive : données illisibles — erreur explicite, jamais un plantage nu"
   assert.throws(() => decodeArchive(truncated), /tronquée au fichier « fr\/x\.js »/);
 });
 
-test("moteur : une ressource absente de l'archive est nommée dans l'erreur", () => {
-  const assets = decodeArchive(makeArchive([["text.js", "var text = {};"]]));
-  assert.throws(() => loadGrammalecteEngine(assets), (error: unknown) => {
-    assert.ok(error instanceof GrammalecteEngineError);
-    assert.match((error as Error).message, /graphspell\/helpers\.js/);
-    return true;
-  });
-});
-
 /* --------------------- moteur réel (si disponible) ------------------- */
 
 test("build : l'archive réelle contient les 21 fichiers du moteur", { skip: !HAS_RESOURCES }, () => {
@@ -92,40 +82,22 @@ test("build : l'archive réelle contient les 21 fichiers du moteur", { skip: !HA
   assert.equal(assets.has("README.txt"), false, "la documentation n'est pas embarquée");
 });
 
-test("moteur : analyse réelle depuis l'archive embarquée", { skip: !HAS_RESOURCES }, () => {
-  const engine = loadGrammalecteEngine(decodeArchive(buildArchiveBase64(RESOURCES_DIR).base64));
-  const text = "Le chat dorment sur le tapis.";
-
-  const issues = analyseWithEngine(engine, text, {
-    checkSpelling: true,
-    detectRepetitions: false,
-    maxSuggestions: 3,
-  });
-
-  const accord = issues.find((issue) => text.slice(issue.start, issue.end) === "dorment");
-  assert.ok(accord, "l'accord sujet-verbe est détecté");
-  assert.equal(accord.category, "Grammaire");
-  assert.ok(accord.suggestions?.includes("dort"));
+test("worker : les sources et données du moteur sont intégrées statiquement", { skip: !HAS_RESOURCES }, () => {
+  const source = buildWorkerSource(RESOURCES_DIR);
+  assert.match(source, /gc_engine\.load/);
+  assert.match(source, /fr-classic/);
+  assert.doesNotMatch(source, /node:vm|require\(["']vm["']\)|new Function|eval\s*\(/);
 });
 
-test("moteur : le contexte vm ne pollue ni String.prototype ni RegExp.prototype", { skip: !HAS_RESOURCES }, () => {
-  // Grammalecte ajoute gl_count/gl_startsWith/gl_expand… à ces prototypes.
-  // Ils doivent rester dans le realm du contexte vm, jamais dans le nôtre.
-  const polluted = () =>
-    Object.getOwnPropertyNames(String.prototype)
-      .concat(Object.getOwnPropertyNames(RegExp.prototype))
-      .filter((name) => name.startsWith("gl_") || name === "grammalecte");
+test("worker : les détections CommonJS de Grammalecte sont masquées dans la portée assemblée", { skip: !HAS_RESOURCES }, () => {
+  const source = buildWorkerSource(RESOURCES_DIR);
+  const wrapper = source.indexOf("const process = undefined;");
+  const firstEngineCheck = source.indexOf("typeof(process) !== 'undefined'");
 
-  assert.deepEqual(polluted(), [], "prototypes propres avant chargement");
-  loadGrammalecteEngine(decodeArchive(buildArchiveBase64(RESOURCES_DIR).base64));
-  assert.deepEqual(polluted(), [], "prototypes toujours propres après chargement du moteur");
-});
-
-test("moteur : le faux XHR ne peut rien lire hors de l'archive", { skip: !HAS_RESOURCES }, () => {
-  /* Le moteur construit lui-même l'URL du dictionnaire ; on vérifie qu'une
-     ressource inconnue est refusée par nom plutôt que cherchée sur disque. */
-  const assets = new Map(decodeArchive(buildArchiveBase64(RESOURCES_DIR).base64));
-  assets.delete("graphspell/_dictionaries/fr-classic.json");
-
-  assert.throws(() => loadGrammalecteEngine(assets), /fr-classic\.json|dictionnaire/);
+  assert.ok(wrapper >= 0, "la source assemblée définit une portée locale");
+  assert.ok(wrapper < firstEngineCheck, "le masque précède les sources Grammalecte");
+  assert.match(source, /const require = undefined;/);
+  assert.match(source, /const exports = undefined;/);
+  assert.match(source, /const module = undefined;/);
+  assert.match(source, /\n\}\)\(\);$/);
 });
