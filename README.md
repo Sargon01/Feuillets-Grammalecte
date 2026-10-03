@@ -1,65 +1,53 @@
 # Feuillets Grammalecte
 
-Projet autonome : [Sargon01/feuillets-grammalecte](https://github.com/Sargon01/Feuillets-Grammalecte).
+Standalone project: [Sargon01/feuillets-grammalecte](https://github.com/Sargon01/Feuillets-Grammalecte).
 
-**Feuillets Grammalecte** est le greffon compagnon officiel d'analyse linguistique pour le studio d'écriture [Feuillets](https://github.com/Sargon01/Feuillets). Il embarque localement le moteur de correction grammaticale et orthographique **Grammalecte** pour offrir une correction fluide et confidentielle directement dans Obsidian.
+**Feuillets Grammalecte** is the official language-analysis companion plugin for the [Feuillets](https://github.com/Sargon01/Feuillets) writing studio. It embeds Grammalecte 2.3.1 locally for French spelling and grammar checking directly in Obsidian.
 
-> **Avertissement** : Ce projet est une intégration indépendante développée pour Obsidian et **n'est pas le projet officiel Grammalecte**.
+> **Note:** This is an independent integration for Obsidian and is **not** the official Grammalecte project.
 
----
+## Requirements
 
-## 🎯 Rôle du compagnon et dépendance
+- A current version of the **Feuillets** plugin that exposes the text-analysis provider API must be installed and enabled.
+- Feuillets Grammalecte supplies local language analysis without adding a grammar engine to Feuillets itself.
 
-Ce greffon fournit un moteur de correction linguistique local qui s'enregistre automatiquement auprès du plugin principal **[Feuillets](https://github.com/Sargon01/Feuillets)**.
+## Features
 
-- **Dépendance requise** : Une version actuelle du plugin **Feuillets**, exposant l’API de fournisseur d’analyse de texte, doit être installée et activée dans Obsidian.
-- **Fournisseur autonome** : Feuillets Grammalecte fournit l'analyse linguistique sans ajouter de logique grammaticale lourde dans le cœur de Feuillets.
+- **French spelling and grammar checking:** Detects spelling, agreement, punctuation, typography, and repetition issues.
+- **Editor-first live correction:** Feuillets runs checks for the current document after a short typing pause. Normal correction works directly in the editor; **Relecture** remains an optional review and analysis surface provided by Feuillets.
+- **Correction actions:** Left-click an underlined issue to open correction actions. Spelling suggestions are loaded lazily, with up to 10 interactive suggestions. You can also choose *Ignore this occurrence* or *Add to dictionary* for spelling issues.
+- **Personal dictionary:** Ignored occurrences last for the current session only. Learned words are saved in the plugin data.
+- **Distinct editor diagnostics:** Feuillets renders the companion’s spelling diagnostics with a wavy underline and grammar diagnostics with a visually distinct dotted or dashed underline; the distinction does not depend on colour alone.
+- **Linguistic analysis:** Lexical richness, lemmas, *-ment* adverbs, passive verbs, and average sentence length remain available.
 
----
+Feuillets can use this provider for live correction in both its standard editor integration and Continu view.
 
-## 🔒 100 % Local et Confidentiel
+## Privacy and local processing
 
-- **Aucun envoi vers un serveur externe** : Vos manuscrits, romans et notes ne quittent jamais votre ordinateur.
-- **Exécution hors ligne** : Le moteur Grammalecte et son dictionnaire français complet sont entièrement embarqués dans le plugin. Aucune connexion internet n'est requise.
-- **Exécution locale isolée** : Le moteur s’exécute dans un Worker local créé depuis une URL Blob ; il est réutilisé après son premier chargement.
+Your text is never sent to an external server. Grammalecte and the `fr-classic` French dictionary are embedded in the plugin, so no network connection or runtime download is required. The compressed resources are loaded locally on first use and run in a reusable local Worker created from a Blob URL.
 
----
+## Installation
 
-## ✨ Fonctionnalités
+### Community plugins
 
-- **Correction orthographique et grammaticale** : Détection des fautes d’orthographe, d’accord, de ponctuation, de typographie et des répétitions.
-- **Correction directement dans l’éditeur** : Cliquez avec le bouton gauche sur un problème souligné pour ouvrir le menu de correction. Il propose jusqu’à 10 suggestions orthographiques interactives, ainsi que *Ignorer cette occurrence* et *Ajouter au dictionnaire* pour l’orthographe. Les occurrences ignorées ne durent que la session ; les mots ajoutés sont conservés dans les données du greffon.
-- **Soulignements dans l’éditeur Markdown** : Feuillets affiche les diagnostics fournis par le compagnon : une vaguelette pour l’orthographe et un soulignement pointillé ou en tirets, visuellement distinct, pour la grammaire. La différence ne repose pas seulement sur la couleur.
-- **Analyse en direct** : Feuillets lance les vérifications après une courte pause de frappe, sur le feuillet courant. La correction normale fonctionne dans l’éditeur sans devoir ouvrir Relecture ; Relecture reste une surface optionnelle de revue et d’analyse fournie par Feuillets.
-- **Section d'analyse linguistique** :
-  - Indicateurs de richesse lexicale, lemmes, adverbes en *-ment*, verbes passifs et longueur moyenne des phrases.
+1. Open **Settings** > **Community plugins**.
+2. Search for **Feuillets Grammalecte** and select **Install**.
+3. Enable the plugin and make sure **Feuillets** is enabled as well.
 
----
+### Manual installation
 
-## 💻 Installation
+1. Download `main.js` and `manifest.json` from the latest [release](https://github.com/Sargon01/Feuillets-Grammalecte/releases).
+2. Create `.obsidian/plugins/feuillets-grammalecte/` in your vault.
+3. Copy `main.js` and `manifest.json` into that folder.
+4. Reload community plugins in Obsidian and enable **Feuillets Grammalecte**.
 
-### Depuis Obsidian (Recommandé)
-1. Ouvrez **Paramètres** > **Plugins tiers**.
-2. Recherchez **Feuillets Grammalecte** et cliquez sur **Installer**.
-3. Activez le plugin. Assurez-vous que le plugin **Feuillets** est également activé.
+## Compatibility and limitations
 
-### Installation manuelle
-1. Téléchargez les fichiers `main.js` et `manifest.json` de la dernière version ([Releases](https://github.com/Sargon01/Feuillets-Grammalecte/releases)).
-2. Créez le dossier `.obsidian/plugins/feuillets-grammalecte/` dans votre coffre.
-3. Copiez-y `main.js` et `manifest.json`.
-4. Rechargez les plugins tiers dans Obsidian et activez **Feuillets Grammalecte**.
+- Requires Obsidian `v1.7.2` or later.
+- Desktop only (`isDesktopOnly: true`): the current implementation and its Feuillets integration are validated for Obsidian Desktop/Electron on macOS, Windows, and Linux. Mobile platforms are not supported.
 
----
+## License and credits
 
-## ⚠️ Limites connues & Compatibilité
-
-- **Compatibilité Obsidian** : Requiert Obsidian `v1.7.2` ou supérieure.
-- **Desktop uniquement (`isDesktopOnly: true`)** : L’implémentation et son intégration Feuillets sont actuellement validées pour Obsidian Desktop/Electron (macOS, Windows et Linux), et ne sont pas disponibles sur mobile (iOS/Android).
-
----
-
-## 📜 Licence et Crédits
-
-- **Licence du greffon** : Distribué sous licence **GNU General Public License v3.0** (`GPL-3.0-only`). Voir le fichier [LICENSE](LICENSE).
-- **Crédits Grammalecte** : Moteur linguistique développé par **Olivier R.** ([https://grammalecte.net](https://grammalecte.net)), projet maintenu par **Algoo SAS** ([https://algoo.fr](https://algoo.fr)). Le greffon embarque Grammalecte v2.3.1 et le dictionnaire `fr-classic`.
-- Consultez le fichier [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) pour le détail des composants tiers embarqués.
+- **Plugin license:** GNU General Public License v3.0 (`GPL-3.0-only`). See [LICENSE](LICENSE).
+- **Grammalecte:** Language engine developed by **Olivier R.** ([https://grammalecte.net](https://grammalecte.net)) and maintained by **Algoo SAS** ([https://algoo.fr](https://algoo.fr)). This plugin embeds Grammalecte 2.3.1 and the `fr-classic` dictionary.
+- See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for embedded third-party component details.

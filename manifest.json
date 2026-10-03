@@ -3,7 +3,7 @@
   "name": "Feuillets Grammalecte",
   "version": "1.1.0",
   "minAppVersion": "1.7.2",
-  "description": "Adds local French grammar and spelling checking (Grammalecte) to the Feuillets writing studio. Requires the Feuillets plugin.",
+  "description": "Adds local French grammar and spelling checking to Feuillets using Grammalecte. Requires the Feuillets plugin.",
   "author": "Halim Yalcin",
   "authorUrl": "https://github.com/Sargon01",
   "isDesktopOnly": true
