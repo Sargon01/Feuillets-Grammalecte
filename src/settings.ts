@@ -23,7 +23,7 @@ export type GrammalecteSettings = {
 export const DEFAULT_SETTINGS: GrammalecteSettings = {
   checkSpelling: true,
   detectRepetitions: false,
-  maxSuggestions: 5,
+  maxSuggestions: 10,
   learnedWords: [],
 };
 

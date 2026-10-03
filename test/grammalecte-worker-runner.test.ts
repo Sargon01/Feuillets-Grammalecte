@@ -9,12 +9,17 @@ class FakeWorker {
   onmessage: Listener | null = null;
   onerror: ((event: ErrorEvent) => void) | null = null;
   terminated = false;
+  messages: Array<{ id: number; method: string; word?: string; maxSuggestions?: number }> = [];
   constructor(_url: string) {
     FakeWorker.instances.push(this);
   }
   postMessage(message: { id: number; method: string }): void {
+    this.messages.push(message);
     if (message.method === "analyze") {
       queueMicrotask(() => this.onmessage?.({ data: { id: message.id, result: [] } } as MessageEvent<{ id: number; result: unknown }>));
+    }
+    if (message.method === "suggest") {
+      queueMicrotask(() => this.onmessage?.({ data: { id: message.id, result: ["quoa", "quou", "quouas", "quouai", "quouan", "quoi", "quoique", "quoiquefois", "quoique part", "quois"] } } as MessageEvent<{ id: number; result: unknown }>));
     }
   }
   terminate(): void {
@@ -41,6 +46,17 @@ test("worker : les premières requêtes simultanées partagent une seule instanc
       runner.analyze("Second texte.", { checkSpelling: true, detectRepetitions: false, maxSuggestions: 5 }),
     ]);
     assert.equal(FakeWorker.instances.length, 1);
+  } finally {
+    restore();
+  }
+});
+
+test("worker : les suggestions passent par la requête dédiée", async () => {
+  const restore = installFakeWorker();
+  try {
+    const runner = new GrammalecteWorkerRunner();
+    assert.deepEqual(await runner.suggest("quoua", 10), ["quoa", "quou", "quouas", "quouai", "quouan", "quoi", "quoique", "quoiquefois", "quoique part", "quois"]);
+    assert.deepEqual(FakeWorker.instances[0].messages[0], { id: 1, method: "suggest", word: "quoua", maxSuggestions: 10 });
   } finally {
     restore();
   }

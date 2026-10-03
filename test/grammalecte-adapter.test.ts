@@ -37,7 +37,7 @@ test("conversion : une erreur de grammaire devient un signalement générique co
   assert.equal(issue.category, CATEGORY_GRAMMAR);
   assert.equal(issue.severity, "warning");
   assert.deepEqual(issue.suggestions, ["dort"]);
-  assert.equal(issue.id, "conf_dorment::chat dorment", "signature stable règle + mot");
+  assert.equal(issue.id, "conf_dorment:3:chat dorment", "signature inclut la position de l'occurrence");
 });
 
 test("conversion : plusieurs suggestions, tronquées au maximum réglé", () => {

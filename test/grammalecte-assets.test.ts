@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { brotliCompressSync } from "node:zlib";
 import { decodeArchive, GrammalecteArchiveError } from "../src/grammalecte-assets.ts";
@@ -87,6 +87,13 @@ test("worker : les sources et données du moteur sont intégrées statiquement",
   assert.match(source, /gc_engine\.load/);
   assert.match(source, /fr-classic/);
   assert.doesNotMatch(source, /node:vm|require\(["']vm["']\)|new Function|eval\s*\(/);
+});
+
+test("worker : les suggestions parcourent tous les groupes avec la limite demandée sans mécanisme d'exécution dynamique", () => {
+  const runtime = readFileSync(path.resolve(import.meta.dirname, "..", "scripts", "grammalecte-worker-runtime.js"), "utf8");
+  assert.match(runtime, /for \(const group of spellChecker\.suggest\(word, maxSuggestions\)\)/);
+  assert.doesNotMatch(runtime, /suggest\(word\)\.next\(\)\.value/);
+  assert.doesNotMatch(runtime, /node:vm|require\(["']vm["']\)|new Function|eval\s*\(/);
 });
 
 test("worker : les détections CommonJS de Grammalecte sont masquées dans la portée assemblée", { skip: !HAS_RESOURCES }, () => {

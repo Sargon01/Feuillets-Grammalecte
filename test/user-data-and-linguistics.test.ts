@@ -24,6 +24,22 @@ test("user-data : apprentissage d'un mot et persistance via saveSettings()", asy
   assert.deepEqual(settings.learnedWords, ["ezan"]);
 });
 
+test("suggestions : le plafond interactif reste à dix malgré un réglage historique plus court", async () => {
+  const settings: GrammalecteSettings = { ...DEFAULT_SETTINGS, maxSuggestions: 5 };
+  const engine = {
+    paragraphs: function* (text: string) { yield text; },
+    setOption: () => {},
+    parse: function* () {},
+    spell: function* () {},
+    suggest: () => ["quoa", "quou", "quouas", "quouai", "quouan", "quoi", "quoique", "quoiquefois", "quoique part", "quois", "quoya"],
+  };
+  const provider = new GrammalecteProvider(() => settings, undefined, () => engine as GrammalecteEngine);
+
+  const suggestions = await provider.suggest("quoua");
+  assert.equal(suggestions.length, 10);
+  assert.ok(suggestions.includes("quoi"));
+});
+
 test("user-data : filtrage des erreurs d'orthographe pour un mot appris, conservation de la grammaire", async () => {
   const settings: GrammalecteSettings = { ...DEFAULT_SETTINGS, learnedWords: ["ezan"] };
 

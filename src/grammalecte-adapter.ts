@@ -41,8 +41,8 @@ function limit(suggestions: string[] | undefined, maxSuggestions: number): strin
    casse) — reprise de l'ancien utils/grammar-issue-signature.ts. Feuillets ne
    l'interprète pas ; elle sert au compagnon, et à identifier un signalement
    d'une analyse à l'autre. */
-function signature(ruleId: string, underlined: string): string {
-  return `${ruleId}::${(underlined || "").toLowerCase()}`;
+function signature(ruleId: string, underlined: string, start: number): string {
+  return `${ruleId}:${start}:${(underlined || "").toLowerCase()}`;
 }
 
 /** Erreur de grammaire Grammalecte -> signalement générique Feuillets.
@@ -54,7 +54,7 @@ export function grammarErrorToIssue(
   maxSuggestions: number
 ): TextAnalysisIssue {
   return {
-    id: signature(error.sRuleId, error.sUnderlined),
+    id: signature(error.sRuleId, error.sUnderlined, paragraphOffset + error.nStart),
     message: error.sMessage,
     category: CATEGORY_GRAMMAR,
     severity: "warning",
@@ -74,7 +74,7 @@ export function spellTokenToIssue(
   maxSuggestions: number
 ): TextAnalysisIssue {
   return {
-    id: signature("orthographe", token.sValue),
+    id: signature("orthographe", token.sValue, paragraphOffset + token.nStart),
     message: `« ${token.sValue} » : mot inconnu du dictionnaire.`,
     category: CATEGORY_SPELLING,
     severity: "error",

@@ -51,6 +51,7 @@ export interface TextAnalysisProvider {
   id: string;
   name: string;
   analyze(input: TextAnalysisInput): Promise<TextAnalysisIssue[]>;
+  suggest?(word: string, issue?: TextAnalysisIssue): Promise<string[]> | string[];
   ignoreOccurrence?(issue: TextAnalysisIssue): Promise<void> | void;
   learnWord?(word: string, issue?: TextAnalysisIssue): Promise<void> | void;
   analyzeLinguistics?(input: TextAnalysisInput): Promise<LinguisticAnalysisResult | null>;

@@ -14,7 +14,7 @@ type WorkerIssue =
   | { kind: "grammar"; error: GrammalecteError; paragraphOffset: number }
   | { kind: "spelling"; token: GrammalecteSpellToken; suggestions: string[]; paragraphOffset: number };
 
-type Request = { id: number; method: "analyze"; text: string; options: AnalyseOptions } | { id: number; method: "morph"; word: string };
+type Request = { id: number; method: "analyze"; text: string; options: AnalyseOptions } | { id: number; method: "morph"; word: string } | { id: number; method: "suggest"; word: string; maxSuggestions: number };
 type Response = { id: number; result?: unknown; error?: string };
 type Pending = { resolve(value: unknown): void; reject(reason: Error): void };
 
@@ -61,6 +61,14 @@ export class GrammalecteWorkerRunner {
       getMorph: (word) => morphology.get(word) || [],
     };
     return analyzeLinguisticsWithEngine(engine, text);
+  }
+
+  async suggest(word: string, maxSuggestions: number): Promise<string[]> {
+    const result = await this.request({ id: this.nextRequestId(), method: "suggest", word, maxSuggestions });
+    if (!Array.isArray(result) || !result.every((entry) => typeof entry === "string")) {
+      throw new GrammalecteWorkerError("Réponse de suggestions Grammalecte invalide.");
+    }
+    return result;
   }
 
   dispose(): void {

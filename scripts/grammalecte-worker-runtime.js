@@ -25,6 +25,21 @@ self.XMLHttpRequest = LocalAssetRequest;
 let spellChecker = null;
 let initialized = false;
 
+function suggestionsFor(word, maxSuggestions) {
+  initialize();
+  const suggestions = [];
+  const seen = new Set();
+  for (const group of spellChecker.suggest(word, maxSuggestions)) {
+    if (!group || typeof group[Symbol.iterator] !== "function") continue;
+    for (const suggestion of group) {
+      if (typeof suggestion !== "string" || seen.has(suggestion)) continue;
+      seen.add(suggestion);
+      suggestions.push(suggestion);
+    }
+  }
+  return maxSuggestions > 0 ? suggestions.slice(0, maxSuggestions) : [];
+}
+
 function initialize() {
   if (initialized) return;
   conj.init(__grammalecteAssets.get("fr/conj_data.json"));
@@ -44,12 +59,12 @@ function analyse(sourceText, options) {
   let paragraphOffset = 0;
   for (const paragraph of text.getParagraph(sourceText)) {
     if (paragraph.trim() !== "") {
-      for (const error of gc_engine.parse(paragraph, "FR", false, null, true)) {
+      for (const error of gc_engine.parse(paragraph, "FR", false, null, false)) {
         issues.push({ kind: "grammar", error, paragraphOffset });
       }
       if (options.checkSpelling) {
         for (const token of spellChecker.parseParagraph(paragraph)) {
-          issues.push({ kind: "spelling", token, suggestions: spellChecker.suggest(token.sValue).next().value || [], paragraphOffset });
+          issues.push({ kind: "spelling", token, suggestions: [], paragraphOffset });
         }
       }
     }
@@ -71,6 +86,10 @@ self.onmessage = ({ data }) => {
     }
     if (data.method === "morph") {
       self.postMessage({ id: data.id, result: morphs(data.word) });
+      return;
+    }
+    if (data.method === "suggest") {
+      self.postMessage({ id: data.id, result: suggestionsFor(data.word, data.maxSuggestions) });
       return;
     }
     throw new Error(`Méthode Grammalecte inconnue : ${data.method}`);

@@ -22,6 +22,7 @@ import type { GrammalecteSettings } from "./settings.ts";
 
 export const PROVIDER_ID = "grammalecte";
 export const PROVIDER_NAME = "Grammalecte";
+const INTERACTIVE_SUGGESTION_LIMIT = 10;
 
 /** Fabrique du moteur, injectable pour les tests : ils vérifient le
  *  chargement paresseux sans jamais lire les 9 Mo de règles réelles. */
@@ -81,6 +82,13 @@ export class GrammalecteProvider implements TextAnalysisProvider {
     }
   }
 
+  async suggest(word: string): Promise<string[]> {
+    const cleanWord = word.trim();
+    if (!cleanWord) return [];
+    if (this.loadEngine) return (await this.ensureEngine()).suggest(cleanWord).slice(0, INTERACTIVE_SUGGESTION_LIMIT);
+    return this.ensureWorker().suggest(cleanWord, INTERACTIVE_SUGGESTION_LIMIT);
+  }
+
   async analyze(input: TextAnalysisInput): Promise<TextAnalysisIssue[]> {
     const text = typeof input?.text === "string" ? input.text : "";
     if (text.trim() === "") return [];
@@ -91,7 +99,8 @@ export class GrammalecteProvider implements TextAnalysisProvider {
       detectRepetitions: settings.detectRepetitions,
       maxSuggestions: settings.maxSuggestions,
     };
-    const rawIssues = this.loadEngine ? analyseWithEngine(await this.ensureEngine(), text, options) : await this.ensureWorker().analyze(text, options);
+    const rawIssues = (this.loadEngine ? analyseWithEngine(await this.ensureEngine(), text, options) : await this.ensureWorker().analyze(text, options))
+      .map((issue) => ({ ...issue, id: `${input.filePath ?? ""}:${issue.id ?? `${issue.ruleId ?? "issue"}:${issue.start}:${issue.end}`}` }));
 
     const learnedSet = new Set((settings.learnedWords || []).map((w) => w.toLowerCase()));
 
