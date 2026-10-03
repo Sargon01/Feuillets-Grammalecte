@@ -6,22 +6,31 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.1.0] - 2026-10-03
+
+### Ajouté
+- Correction en direct, centrée sur l’éditeur, via Feuillets ; compatible avec la correction en direct de Feuillets dans l’éditeur normal et Continu.
+- Suggestions orthographiques chargées à la demande.
+- Mots appris persistants et possibilité d’ignorer une occurrence pour la session.
+
+### Modifié
+- Mise à niveau de Grammalecte vers la version 2.3.1.
+- Ouverture du menu de correction par clic gauche sur un problème souligné.
+- Exécution locale dans un Worker à la place de l’ancienne intégration Node `vm`.
+- Ressources regroupées dans une archive Brotli décompressée au premier usage ; bundle réduit d’environ 9,8 Mo à environ 1,9 Mo.
+- Collecte de tous les groupes de suggestions Graphspell avant l’application de la limite interactive.
+
+### Corrigé
+- L’identité des occurrences distingue désormais un même mot selon sa position et son fichier.
+- Démarrage du Worker compatible avec l’environnement Electron/CommonJS.
+- Suggestions limitées ou incomplètes dans le menu interactif.
+
 ## [1.0.0] - 2026-07-31
 
 ### Ajouté
-- **Intégration locale du moteur Grammalecte v2.2.0** :
+- **Intégration locale du moteur Grammalecte** :
   - Dictionnaire français classique embarqué sans téléchargement réseau.
-  - Évaluation isolée dans un bac à sable `vm` (Node.js) pour préserver l'environnement d'Obsidian.
 - **Enregistrement auprès de l'API Feuillets** :
   - Fournisseur linguistique autonome détecté et enregistré dynamiquement.
-- **Menu contextuel (clic droit)** :
-  - Remplacement direct par les suggestions d'orthographe et de grammaire.
-  - Option *Ignorer cette occurrence* (masquage en mémoire pour la session).
-  - Option *Apprendre ce mot* (réservée à l'orthographe, persistée dans `data.json`).
-- **Soulignements dans l'éditeur** :
-  - Vaguelette rouge pour l'orthographe et vaguelette bleue pour la grammaire via CodeMirror 6.
-- **Analyse automatique (Debounce)** :
-  - Relance automatique après 1 seconde sans frappe lorsque l'onglet Relecture est ouvert.
-  - Conservation du focus éditeur et neutralisation des réanalyses sur texte inchangé.
 - **Section d'analyse linguistique** :
   - Mesures de richesse lexicale, lemmes, adverbes en *-ment* et voix passive.

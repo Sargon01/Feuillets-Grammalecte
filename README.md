@@ -2,7 +2,7 @@
 
 Projet autonome : [Sargon01/feuillets-grammalecte](https://github.com/Sargon01/Feuillets-Grammalecte).
 
-**Feuillets Grammalecte** est le greffon compagnon officiel d'analyse linguistique pour le studio d'écriture [Feuillets](https://github.com/Sargon01/Feuillets). Il embarque localement le moteur de correction grammaticale et orthographique **Grammalecte** pour offrir une relecture fluide et confidentielle directement dans Obsidian.
+**Feuillets Grammalecte** est le greffon compagnon officiel d'analyse linguistique pour le studio d'écriture [Feuillets](https://github.com/Sargon01/Feuillets). Il embarque localement le moteur de correction grammaticale et orthographique **Grammalecte** pour offrir une correction fluide et confidentielle directement dans Obsidian.
 
 > **Avertissement** : Ce projet est une intégration indépendante développée pour Obsidian et **n'est pas le projet officiel Grammalecte**.
 
@@ -12,7 +12,7 @@ Projet autonome : [Sargon01/feuillets-grammalecte](https://github.com/Sargon01/F
 
 Ce greffon fournit un moteur de correction linguistique local qui s'enregistre automatiquement auprès du plugin principal **[Feuillets](https://github.com/Sargon01/Feuillets)**.
 
-- **Dépendance requise** : Le plugin **Feuillets** (v1.6.0 ou supérieure) doit être installé et activé dans Obsidian.
+- **Dépendance requise** : Une version actuelle du plugin **Feuillets**, exposant l’API de fournisseur d’analyse de texte, doit être installée et activée dans Obsidian.
 - **Fournisseur autonome** : Feuillets Grammalecte fournit l'analyse linguistique sans ajouter de logique grammaticale lourde dans le cœur de Feuillets.
 
 ---
@@ -21,23 +21,16 @@ Ce greffon fournit un moteur de correction linguistique local qui s'enregistre a
 
 - **Aucun envoi vers un serveur externe** : Vos manuscrits, romans et notes ne quittent jamais votre ordinateur.
 - **Exécution hors ligne** : Le moteur Grammalecte et son dictionnaire français complet sont entièrement embarqués dans le plugin. Aucune connexion internet n'est requise.
+- **Exécution locale isolée** : Le moteur s’exécute dans un Worker local créé depuis une URL Blob ; il est réutilisé après son premier chargement.
 
 ---
 
 ## ✨ Fonctionnalités
 
-- **Correction orthographique et grammaticale** : Détection des fautes d'orthographe, d'accord, de ponctuation, de typographie et des répétitions.
-- **Menu contextuel (clic droit)** :
-  - Suggestions de remplacement directes avec remplacement exact du texte.
-  - *Ignorer cette occurrence* (masque la faute pour la session en cours).
-  - *Apprendre ce mot* (pour les erreurs d'orthographe, avec persistance dans les réglages).
-- **Soulignements dans l'éditeur Markdown** :
-  - Vaguelette **rouge** pour les erreurs d'orthographe.
-  - Vaguelette **bleue** pour les erreurs de grammaire.
-- **Analyse automatique temporisée (Debounce)** :
-  - Relance automatique de la vérification 1 seconde après la fin de la frappe lorsque l'onglet **Relecture** est ouvert.
-  - Ne relance pas l'analyse si le texte n'a pas changé.
-  - Portée strictement limitée au feuillet courant (`document`) pour ne jamais ralentir l'application sur le roman entier.
+- **Correction orthographique et grammaticale** : Détection des fautes d’orthographe, d’accord, de ponctuation, de typographie et des répétitions.
+- **Correction directement dans l’éditeur** : Cliquez avec le bouton gauche sur un problème souligné pour ouvrir le menu de correction. Il propose jusqu’à 10 suggestions orthographiques interactives, ainsi que *Ignorer cette occurrence* et *Ajouter au dictionnaire* pour l’orthographe. Les occurrences ignorées ne durent que la session ; les mots ajoutés sont conservés dans les données du greffon.
+- **Soulignements dans l’éditeur Markdown** : Feuillets affiche les diagnostics fournis par le compagnon : une vaguelette pour l’orthographe et un soulignement pointillé ou en tirets, visuellement distinct, pour la grammaire. La différence ne repose pas seulement sur la couleur.
+- **Analyse en direct** : Feuillets lance les vérifications après une courte pause de frappe, sur le feuillet courant. La correction normale fonctionne dans l’éditeur sans devoir ouvrir Relecture ; Relecture reste une surface optionnelle de revue et d’analyse fournie par Feuillets.
 - **Section d'analyse linguistique** :
   - Indicateurs de richesse lexicale, lemmes, adverbes en *-ment*, verbes passifs et longueur moyenne des phrases.
 
@@ -60,13 +53,13 @@ Ce greffon fournit un moteur de correction linguistique local qui s'enregistre a
 
 ## ⚠️ Limites connues & Compatibilité
 
-- **Compatibilité Obsidian** : Requièrt Obsidian `v1.7.2` ou supérieure.
-- **Desktop uniquement (`isDesktopOnly: true`)** : En raison de l'utilisation du module `vm` de Node.js pour isoler le moteur Grammalecte des prototypes globaux de l'application, ce greffon ne fonctionne que sur la version de bureau (macOS, Windows, Linux) et n'est pas disponible sur mobiles (iOS/Android).
+- **Compatibilité Obsidian** : Requiert Obsidian `v1.7.2` ou supérieure.
+- **Desktop uniquement (`isDesktopOnly: true`)** : L’implémentation et son intégration Feuillets sont actuellement validées pour Obsidian Desktop/Electron (macOS, Windows et Linux), et ne sont pas disponibles sur mobile (iOS/Android).
 
 ---
 
 ## 📜 Licence et Crédits
 
 - **Licence du greffon** : Distribué sous licence **GNU General Public License v3.0** (`GPL-3.0-only`). Voir le fichier [LICENSE](LICENSE).
-- **Crédits Grammalecte** : Moteur linguistique développé par **Olivier R.** ([https://grammalecte.net](https://grammalecte.net)), projet maintenu par **Algoo SAS** ([https://algoo.fr](https://algoo.fr)). Le greffon embarque le moteur Grammalecte v2.2.0 (la version officielle amont actuelle est la 2.3.0).
+- **Crédits Grammalecte** : Moteur linguistique développé par **Olivier R.** ([https://grammalecte.net](https://grammalecte.net)), projet maintenu par **Algoo SAS** ([https://algoo.fr](https://algoo.fr)). Le greffon embarque Grammalecte v2.3.1 et le dictionnaire `fr-classic`.
 - Consultez le fichier [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) pour le détail des composants tiers embarqués.

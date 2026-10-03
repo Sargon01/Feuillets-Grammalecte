@@ -17,12 +17,17 @@ Fichiers conservés depuis le paquet d'origine (extraction du .xpi) :
 - text.js : utilitaires de découpage en paragraphes.
 
 Volontairement exclus (spécifiques à l'extension navigateur, inutiles ici) :
-panneau HTML/CSS, icônes, polices, fonts Awesome, gce_worker.js (sa logique de
-chargement — même ordre, mêmes fichiers — est reprise dans
-src/services/grammalecte-checker.js, qui exécute ces fichiers dans un
-vm.createContext() partagé au lieu d'un Worker de navigateur avec
-importScripts ; tourne directement dans le process d'Obsidian, pas dans un
-processus séparé — voir les commentaires en tête de ce fichier).
+panneau HTML/CSS, icônes, polices, Font Awesome et `gce_worker.js`.
+
+Intégration dans Feuillets Grammalecte : les ressources conservées sont
+regroupées à la construction dans une archive Brotli. Au premier emploi, le
+greffon décompresse localement cette archive en une carte de ressources,
+assemble le source d'un Worker en mémoire, puis l'exécute dans un Worker local
+créé depuis une URL Blob. Le dictionnaire utilisé est exclusivement
+`fr-classic.json`. Les globaux CommonJS `process`, `require`, `exports` et
+`module` sont masqués lexicalement afin d'employer les branches
+navigateur/global de Grammalecte. Aucun téléchargement n'est effectué à
+l'exécution.
 
 Modification apportée par rapport à l'original (GPL-3.0 oblige à la
 signaler) :
