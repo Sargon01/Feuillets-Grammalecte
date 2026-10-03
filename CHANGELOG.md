@@ -6,6 +6,14 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.1.1] - 2026-10-03
+
+### Changed
+- Migrated plugin settings to the searchable declarative settings system available in Obsidian 1.13.0 and later.
+- Raised the minimum supported Obsidian version to 1.13.0.
+- Removed deprecated imperative settings UI usage.
+- Added an attested GitHub Actions release workflow that builds the published assets.
+
 ## [1.1.0] - 2026-10-03
 
 ### Ajouté

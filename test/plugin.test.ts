@@ -4,12 +4,12 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { App, PluginManifest } from "obsidian";
+import type { App, PluginManifest, SettingDefinitionControl, SettingDefinitionItem } from "obsidian";
 import { notices } from "./obsidian-stub.mjs";
 import FeuilletsGrammalectePlugin from "../main.ts";
 import { getFeuilletsApi, isFeuilletsPresentWithoutApi } from "../src/feuillets-api.ts";
 import { GrammalecteProvider, PROVIDER_ID } from "../src/grammalecte-provider.ts";
-import { DEFAULT_SETTINGS, normalizeSettings } from "../src/settings.ts";
+import { DEFAULT_SETTINGS, GrammalecteSettingTab, normalizeSettings } from "../src/settings.ts";
 import type { GrammalecteEngine, GrammalecteError } from "../src/grammalecte-adapter.ts";
 import type { TextAnalysisProvider } from "../src/feuillets-api.ts";
 
@@ -92,12 +92,27 @@ test("chargement : le fournisseur est enregistré auprès de Feuillets", async (
 
   await plugin.onload();
 
+  assert.deepEqual(plugin.settings, DEFAULT_SETTINGS);
   assert.equal(plugin.isConnected, true);
   const provider = feuillets.providers.get(PROVIDER_ID);
   assert.ok(provider);
   assert.equal(provider.id, "grammalecte");
   assert.equal(provider.name, "Grammalecte");
   assert.equal(typeof provider.analyze, "function");
+});
+
+test("réglages : les données persistées sont normalisées dans plugin.settings", async () => {
+  const plugin = makePlugin(fakeApp({}));
+  await plugin.saveData({ checkSpelling: false, detectRepetitions: true, maxSuggestions: 7.2, learnedWords: ["Ezan", ""] });
+
+  await plugin.onload();
+
+  assert.deepEqual(plugin.settings, {
+    checkSpelling: false,
+    detectRepetitions: true,
+    maxSuggestions: 7,
+    learnedWords: ["Ezan"],
+  });
 });
 
 test("déchargement : le fournisseur est retiré, Feuillets reste intact", async () => {
@@ -279,10 +294,27 @@ test("réglages : un data.json abîmé retombe sur des valeurs valides", () => {
   assert.deepEqual(normalizeSettings(null), DEFAULT_SETTINGS);
   assert.deepEqual(normalizeSettings("bidon"), DEFAULT_SETTINGS);
   assert.equal(normalizeSettings({ maxSuggestions: -4 }).maxSuggestions, 0);
-  assert.equal(normalizeSettings({ maxSuggestions: 999 }).maxSuggestions, 20);
+  assert.equal(normalizeSettings({ maxSuggestions: 999 }).maxSuggestions, 10);
   assert.equal(normalizeSettings({ maxSuggestions: 3.7 }).maxSuggestions, 4);
   assert.equal(normalizeSettings({ checkSpelling: "oui" }).checkSpelling, true);
   assert.equal(normalizeSettings({ checkSpelling: false }).checkSpelling, false);
+});
+
+test("réglages : les définitions déclaratives exposent uniquement les contrôles configurables", () => {
+  const plugin = makePlugin(fakeApp({}));
+  const definitions = new GrammalecteSettingTab(plugin.app, plugin).getSettingDefinitions();
+  const controls = definitions.filter(
+    (definition: SettingDefinitionItem): definition is SettingDefinitionControl =>
+      "control" in definition && definition.control !== undefined
+  );
+  const keys = controls.map((definition) => definition.control.key);
+
+  assert.deepEqual(keys, ["checkSpelling", "detectRepetitions", "maxSuggestions"]);
+  assert.equal(keys.includes("learnedWords"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(GrammalecteSettingTab.prototype, "display"), false);
+
+  const slider = controls.find((definition) => definition.control.key === "maxSuggestions")?.control;
+  assert.deepEqual(slider, { key: "maxSuggestions", type: "slider", min: 0, max: 10, step: 1 });
 });
 
 test("réglages : les réglages sont relus à chaque analyse, pas figés au chargement", async () => {

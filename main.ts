@@ -18,17 +18,8 @@ import {
 } from "./src/settings.ts";
 
 export default class FeuilletsGrammalectePlugin extends Plugin {
-  /* `Plugin.settings?: unknown` n'existe dans obsidian.d.ts que depuis
-     1.13.0 ("Assign loaded data here in onload. Declare a concrete type on
-     your subclass to type it.") — mais c'est une annotation de TYPE, pas un
-     comportement d'exécution : aucune méthode de `Plugin` ne lit ni n'écrit
-     ce champ, avant ou après 1.13.0. Le déclarer et l'assigner soi-même dans
-     `onload()` (ce que fait exactement le commentaire ci-dessus) fonctionne
-     identiquement sur toutes les versions — c'est la convention Obsidian la
-     plus ancienne et la plus répandue, désormais simplement typée. Une revue
-     obsidianmd le signale malgré tout (`no-unsupported-api`, en comparant le
-     type au `@since`) : faux positif assumé, minAppVersion (1.7.2) reste
-     inchangé plutôt que d'être relevé pour un non-problème. */
+  /* La compatibilité minimale 1.13.0 prend en charge Plugin.settings et les
+     réglages déclaratifs. */
   settings: GrammalecteSettings = { ...DEFAULT_SETTINGS };
 
   private provider: GrammalecteProvider | null = null;
@@ -57,7 +48,7 @@ export default class FeuilletsGrammalectePlugin extends Plugin {
       id: "reconnect",
       name: "Reconnecter le correcteur",
       callback: () => {
-        if (this.connect()) new Notice("Grammalecte est de nouveau enregistré auprès de Feuillets.");
+        if (this.connect()) new Notice("Le correcteur est de nouveau enregistré.");
         else this.warnMissingFeuillets();
       },
     });

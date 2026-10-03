@@ -25,7 +25,7 @@ const repoDir = path.resolve(companionDir, "..");
 const targetDir = path.join(companionDir, "resources", "grammalecte");
 
 if (entriesExist(targetDir)) {
-  console.log("Ressources Grammalecte déjà présentes dans resources/grammalecte/.");
+  process.stdout.write("Ressources Grammalecte déjà présentes dans resources/grammalecte/.\n");
   process.exit(0);
 }
 
@@ -38,16 +38,16 @@ try {
     .split("\n")
     .filter(Boolean);
 } catch (error) {
-  console.error(
+  process.stderr.write(
     `Impossible de lire ${SOURCE_REF} dans ${repoDir}. ` +
-      "Ce script doit tourner depuis une copie complète du dépôt Feuillets."
+      "Ce script doit tourner depuis une copie complète du dépôt Feuillets.\n"
   );
-  console.error(error.message);
+  process.stderr.write(`${error.message}\n`);
   process.exit(1);
 }
 
 if (entries.length === 0) {
-  console.error(`Aucun fichier sous ${SOURCE_PREFIX} dans ${SOURCE_REF}.`);
+  process.stderr.write(`Aucun fichier sous ${SOURCE_PREFIX} dans ${SOURCE_REF}.\n`);
   process.exit(1);
 }
 
@@ -62,9 +62,9 @@ for (const entry of entries) {
   bytes += content.length;
 }
 
-console.log(
+process.stdout.write(
   `${entries.length} fichiers restaurés dans resources/grammalecte/ ` +
-    `(${(bytes / 1024 / 1024).toFixed(1)} Mo).`
+    `(${(bytes / 1024 / 1024).toFixed(1)} Mo).\n`
 );
 
 function entriesExist(directory) {

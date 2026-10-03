@@ -43,8 +43,16 @@ Your text is never sent to an external server. Grammalecte and the `fr-classic` 
 
 ## Compatibility and limitations
 
-- Requires Obsidian `v1.7.2` or later.
+- Requires Obsidian `v1.13.0` or later.
 - Desktop only (`isDesktopOnly: true`): the current implementation and its Feuillets integration are validated for Obsidian Desktop/Electron on macOS, Windows, and Linux. Mobile platforms are not supported.
+
+## Release provenance
+
+Published release assets are built and attested in GitHub Actions. Verify an asset with:
+
+```sh
+gh attestation verify main.js --repo Sargon01/Feuillets-Grammalecte
+```
 
 ## License and credits
 

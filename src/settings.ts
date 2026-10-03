@@ -1,12 +1,9 @@
 /* Réglages du compagnon : trois options, toutes réellement appliquées par
  * Grammalecte. Rien de générique ici (langue d'interface, affichage des
  * résultats, navigation) — tout cela appartient à Feuillets et n'a pas à être
- * dupliqué.
- *
- * Pas de réglage « analyse automatique » : la version 1 n'analyse QUE sur
- * commande explicite. Un tel réglage n'aurait rien à piloter. */
+ * dupliqué. Feuillets décide quand les vérifications en direct sont lancées. */
 
-import { PluginSettingTab, Setting, type App, type Plugin } from "obsidian";
+import { PluginSettingTab, type App, type Plugin, type SettingDefinitionItem } from "obsidian";
 
 export type GrammalecteSettings = {
   /** Signaler aussi les mots inconnus du dictionnaire. */
@@ -33,7 +30,7 @@ export const DEFAULT_SETTINGS: GrammalecteSettings = {
 export function normalizeSettings(raw: unknown): GrammalecteSettings {
   const data = (typeof raw === "object" && raw !== null ? raw : {}) as Partial<GrammalecteSettings>;
   const max = typeof data.maxSuggestions === "number" && Number.isFinite(data.maxSuggestions)
-    ? Math.min(20, Math.max(0, Math.round(data.maxSuggestions)))
+    ? Math.min(10, Math.max(0, Math.round(data.maxSuggestions)))
     : DEFAULT_SETTINGS.maxSuggestions;
   const learned = Array.isArray(data.learnedWords)
     ? data.learnedWords.filter((w): w is string => typeof w === "string" && w.trim() !== "")
@@ -53,62 +50,35 @@ type SettingsHost = Plugin & {
 };
 
 export class GrammalecteSettingTab extends PluginSettingTab {
-  private readonly host: SettingsHost;
-
   constructor(app: App, host: SettingsHost) {
     super(app, host);
-    this.host = host;
   }
 
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-
-    /* Dire où passe le texte est un engagement, pas un argument commercial :
-       l'analyse s'exécute dans Obsidian, sur des fichiers du coffre. Aucune
-       requête réseau n'est faite par ce greffon. */
-    containerEl.createEl("p", {
-      text:
-        "L'analyse est entièrement locale : le texte des feuillets ne quitte jamais " +
-        "cet ordinateur. Elle ne se déclenche que sur commande, et ne modifie jamais " +
-        "les fichiers analysés.",
-    });
-
-    new Setting(containerEl)
-      .setName("Signaler les mots inconnus")
-      .setDesc("Ajoute la vérification orthographique aux signalements de grammaire.")
-      .addToggle((toggle) =>
-        toggle.setValue(this.host.settings.checkSpelling).onChange(async (value) => {
-          this.host.settings.checkSpelling = value;
-          await this.host.saveSettings();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("Signaler les répétitions proches")
-      .setDesc(
-        "Active les règles redon1/redon2 de Grammalecte. Désactivées par défaut, y compris " +
-          "dans Grammalecte : elles sont bavardes sur un texte littéraire."
-      )
-      .addToggle((toggle) =>
-        toggle.setValue(this.host.settings.detectRepetitions).onChange(async (value) => {
-          this.host.settings.detectRepetitions = value;
-          await this.host.saveSettings();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("Suggestions par signalement")
-      .setDesc("Nombre maximal de corrections proposées (0 pour n'en afficher aucune).")
-      .addSlider((slider) =>
-        slider
-          .setLimits(0, 10, 1)
-          .setValue(this.host.settings.maxSuggestions)
-          .setDynamicTooltip()
-          .onChange(async (value) => {
-            this.host.settings.maxSuggestions = value;
-            await this.host.saveSettings();
-          })
-      );
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        name: "Confidentialité",
+        desc:
+          "L’analyse est entièrement locale : le texte des feuillets ne quitte jamais cet ordinateur. " +
+          "Feuillets décide quand les vérifications en direct sont lancées ; ce greffon fournit le moteur d’analyse local.",
+      },
+      {
+        name: "Signaler les mots inconnus",
+        desc: "Ajoute la vérification orthographique aux signalements de grammaire.",
+        control: { key: "checkSpelling", type: "toggle" },
+      },
+      {
+        name: "Signaler les répétitions proches",
+        desc:
+          "Active les règles redon1/redon2 de Grammalecte. Désactivées par défaut, y compris " +
+          "dans Grammalecte : elles sont bavardes sur un texte littéraire.",
+        control: { key: "detectRepetitions", type: "toggle" },
+      },
+      {
+        name: "Suggestions par signalement",
+        desc: "Nombre maximal de corrections proposées (0 pour n’en afficher aucune).",
+        control: { key: "maxSuggestions", type: "slider", min: 0, max: 10, step: 1 },
+      },
+    ];
   }
 }

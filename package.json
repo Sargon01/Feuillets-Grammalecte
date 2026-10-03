@@ -1,13 +1,14 @@
 {
   "name": "feuillets-grammalecte",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Grammalecte companion plugin for Feuillets",
   "main": "main.js",
   "type": "module",
   "scripts": {
     "resources": "node scripts/restore-grammalecte-resources.mjs",
     "typecheck": "tsc -noEmit -skipLibCheck",
-    "lint": "eslint . && npm run typecheck",
+    "lint": "eslint --max-warnings=0 main.ts src scripts && npm run typecheck",
+    "lint:obsidian": "eslint --max-warnings=0 main.ts src scripts",
     "test": "node --import ./test/register-hooks.mjs --test test/*.test.ts",
     "dev": "node esbuild.config.mjs",
     "build": "npm run typecheck && node esbuild.config.mjs production"
@@ -15,10 +16,14 @@
   "author": "Halim Yalcin",
   "license": "GPL-3.0-only",
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@eslint/json": "^0.14.0",
     "@types/node": "^24.0.0",
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
+    "eslint-plugin-obsidianmd": "^0.4.2",
     "obsidian": "latest",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.71.0"
   }
 }
