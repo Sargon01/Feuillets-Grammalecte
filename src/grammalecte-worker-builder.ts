@@ -1,4 +1,7 @@
-const ASSET_URL_PREFIX = "grammalecte-asset:/";
+import type { AssetMap } from "./grammalecte-assets.ts";
+import { GRAMMALECTE_WORKER_DATA_FILES, GRAMMALECTE_WORKER_SCRIPT_FILES } from "./grammalecte-worker-files.ts";
+
+const WORKER_RUNTIME = String.raw`const ASSET_URL_PREFIX = "grammalecte-asset:/";
 const DICTIONARY_DIR = "graphspell/_dictionaries";
 const DICTIONARY_FILE = "fr-classic.json";
 
@@ -6,7 +9,7 @@ class LocalAssetRequest {
   open(_method, url) {
     let name = url.startsWith(ASSET_URL_PREFIX) ? url.slice(ASSET_URL_PREFIX.length) : url;
     if (name.endsWith("/fr-allvars.json") || name.endsWith("/fr-reform.json")) {
-      name = `${DICTIONARY_DIR}/${DICTIONARY_FILE}`;
+      name = DICTIONARY_DIR + "/" + DICTIONARY_FILE;
     }
     this.name = name;
   }
@@ -15,7 +18,7 @@ class LocalAssetRequest {
 
   send() {
     const asset = __grammalecteAssets.get(this.name);
-    if (asset === undefined) throw new Error(`Ressource Grammalecte manquante : ${this.name}`);
+    if (asset === undefined) throw new Error("Ressource Grammalecte manquante : " + this.name);
     this.responseText = asset;
   }
 }
@@ -45,7 +48,7 @@ function initialize() {
   conj.init(__grammalecteAssets.get("fr/conj_data.json"));
   phonet.init(__grammalecteAssets.get("fr/phonet_data.json"));
   mfsp.init(__grammalecteAssets.get("fr/mfsp_data.json"));
-  gc_engine.load("JavaScript", "aHSL", `${ASSET_URL_PREFIX}${DICTIONARY_DIR}`);
+  gc_engine.load("JavaScript", "aHSL", ASSET_URL_PREFIX + DICTIONARY_DIR);
   spellChecker = gc_engine.getSpellChecker();
   if (!spellChecker) throw new Error("Le dictionnaire Grammalecte n'a pas pu être chargé.");
   initialized = true;
@@ -92,8 +95,30 @@ self.onmessage = ({ data }) => {
       self.postMessage({ id: data.id, result: suggestionsFor(data.word, data.maxSuggestions) });
       return;
     }
-    throw new Error(`Méthode Grammalecte inconnue : ${data.method}`);
+    throw new Error("Méthode Grammalecte inconnue : " + data.method);
   } catch (error) {
     self.postMessage({ id: data.id, error: error instanceof Error ? error.message : String(error) });
   }
-};
+};`;
+
+export class GrammalecteWorkerAssemblyError extends Error {
+  constructor(resource: string) {
+    super(`Ressource Grammalecte requise introuvable : ${resource}`);
+    this.name = "GrammalecteWorkerAssemblyError";
+  }
+}
+
+function requiredAsset(assets: AssetMap, name: string): string {
+  const source = assets.get(name);
+  if (source === undefined) throw new GrammalecteWorkerAssemblyError(name);
+  return source;
+}
+
+export function buildGrammalecteWorkerSource(assets: AssetMap): string {
+  const assetEntries = GRAMMALECTE_WORKER_DATA_FILES.map((name) => [name, requiredAsset(assets, name)]);
+  const scripts = GRAMMALECTE_WORKER_SCRIPT_FILES.map((name) => {
+    const directory = name.includes("/") ? name.slice(0, name.lastIndexOf("/")) : "";
+    return `// ${name}\nvar __dirname = "grammalecte-asset:/${directory}";\n${requiredAsset(assets, name)}`;
+  });
+  return `"use strict";\n(() => {\nconst process = undefined;\nconst require = undefined;\nconst exports = undefined;\nconst module = undefined;\nconst __grammalecteAssets = new Map(${JSON.stringify(assetEntries)});\n${scripts.join("\n")}\n${WORKER_RUNTIME}\n})();`;
+}

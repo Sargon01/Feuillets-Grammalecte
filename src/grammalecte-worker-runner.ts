@@ -8,7 +8,8 @@ import {
   type GrammalecteError,
   type GrammalecteSpellToken,
 } from "./grammalecte-adapter.ts";
-import { GRAMMALECTE_WORKER_SOURCE } from "./grammalecte-worker-source.ts";
+import { loadEmbeddedAssets, type AssetMap } from "./grammalecte-assets.ts";
+import { buildGrammalecteWorkerSource } from "./grammalecte-worker-builder.ts";
 
 type WorkerIssue =
   | { kind: "grammar"; error: GrammalecteError; paragraphOffset: number }
@@ -17,6 +18,8 @@ type WorkerIssue =
 type Request = { id: number; method: "analyze"; text: string; options: AnalyseOptions } | { id: number; method: "morph"; word: string } | { id: number; method: "suggest"; word: string; maxSuggestions: number };
 type Response = { id: number; result?: unknown; error?: string };
 type Pending = { resolve(value: unknown): void; reject(reason: Error): void };
+type AssetLoader = () => AssetMap;
+type WorkerSourceBuilder = (assets: AssetMap) => string;
 
 export class GrammalecteWorkerError extends Error {
   constructor(message: string) {
@@ -30,6 +33,13 @@ export class GrammalecteWorkerRunner {
   private workerUrl: string | null = null;
   private readonly pending = new Map<number, Pending>();
   private nextId = 1;
+  private readonly loadAssets: AssetLoader;
+  private readonly buildWorkerSource: WorkerSourceBuilder;
+
+  constructor(loadAssets: AssetLoader = loadEmbeddedAssets, buildWorkerSource: WorkerSourceBuilder = buildGrammalecteWorkerSource) {
+    this.loadAssets = loadAssets;
+    this.buildWorkerSource = buildWorkerSource;
+  }
 
   get isLoaded(): boolean {
     return this.worker !== null;
@@ -90,7 +100,8 @@ export class GrammalecteWorkerRunner {
 
   private ensureWorker(): Worker {
     if (this.worker) return this.worker;
-    const blob = new Blob([GRAMMALECTE_WORKER_SOURCE], { type: "text/javascript" });
+    const source = this.buildWorkerSource(this.loadAssets());
+    const blob = new Blob([source], { type: "text/javascript" });
     this.workerUrl = URL.createObjectURL(blob);
     const worker = new Worker(this.workerUrl);
     worker.onmessage = (event: MessageEvent<Response>) => this.receive(event.data);

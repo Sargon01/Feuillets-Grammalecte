@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { AssetMap } from "../src/grammalecte-assets.ts";
 import { GrammalecteWorkerRunner } from "../src/grammalecte-worker-runner.ts";
 
 type Listener = (event: MessageEvent<{ id: number; result?: unknown; error?: string }>) => void;
@@ -37,10 +38,14 @@ function installFakeWorker(): () => void {
   };
 }
 
+function runnerWithAssets(loadAssets: () => AssetMap = () => new Map()): GrammalecteWorkerRunner {
+  return new GrammalecteWorkerRunner(loadAssets, () => "self.onmessage = () => {}; ");
+}
+
 test("worker : les premières requêtes simultanées partagent une seule instance", async () => {
   const restore = installFakeWorker();
   try {
-    const runner = new GrammalecteWorkerRunner();
+    const runner = runnerWithAssets();
     await Promise.all([
       runner.analyze("Premier texte.", { checkSpelling: true, detectRepetitions: false, maxSuggestions: 5 }),
       runner.analyze("Second texte.", { checkSpelling: true, detectRepetitions: false, maxSuggestions: 5 }),
@@ -54,7 +59,7 @@ test("worker : les premières requêtes simultanées partagent une seule instanc
 test("worker : les suggestions passent par la requête dédiée", async () => {
   const restore = installFakeWorker();
   try {
-    const runner = new GrammalecteWorkerRunner();
+    const runner = runnerWithAssets();
     assert.deepEqual(await runner.suggest("quoua", 10), ["quoa", "quou", "quouas", "quouai", "quouan", "quoi", "quoique", "quoiquefois", "quoique part", "quois"]);
     assert.deepEqual(FakeWorker.instances[0].messages[0], { id: 1, method: "suggest", word: "quoua", maxSuggestions: 10 });
   } finally {
@@ -65,7 +70,7 @@ test("worker : les suggestions passent par la requête dédiée", async () => {
 test("worker : une erreur rejette la requête et autorise une nouvelle instance", async () => {
   const restore = installFakeWorker();
   try {
-    const runner = new GrammalecteWorkerRunner();
+    const runner = runnerWithAssets();
     const pending = runner.analyze("Texte.", { checkSpelling: true, detectRepetitions: false, maxSuggestions: 5 });
     FakeWorker.instances[0].onerror?.({ message: "échec contrôlé" } as ErrorEvent);
     await assert.rejects(() => pending, /échec contrôlé/);
@@ -79,11 +84,38 @@ test("worker : une erreur rejette la requête et autorise une nouvelle instance"
 test("worker : dispose termine l'instance et rejette les requêtes pendantes", async () => {
   const restore = installFakeWorker();
   try {
-    const runner = new GrammalecteWorkerRunner();
+    const runner = runnerWithAssets();
     const pending = runner.analyze("Texte.", { checkSpelling: true, detectRepetitions: false, maxSuggestions: 5 });
     runner.dispose();
     await assert.rejects(() => pending, /arrêté/);
     assert.equal(FakeWorker.instances[0].terminated, true);
+  } finally {
+    restore();
+  }
+});
+
+test("worker : les ressources restent inertes jusqu'à la première requête et ne sont décodées qu'une fois", async () => {
+  const restore = installFakeWorker();
+  let loads = 0;
+  let builds = 0;
+  try {
+    const runner = new GrammalecteWorkerRunner(
+      () => {
+        loads += 1;
+        return new Map();
+      },
+      () => {
+        builds += 1;
+        return "self.onmessage = () => {};";
+      }
+    );
+    assert.equal(loads, 0);
+    assert.equal(builds, 0);
+    await runner.analyze("Texte.", { checkSpelling: true, detectRepetitions: false, maxSuggestions: 5 });
+    await runner.suggest("quoua", 10);
+    assert.equal(loads, 1);
+    assert.equal(builds, 1);
+    assert.equal(FakeWorker.instances.length, 1);
   } finally {
     restore();
   }

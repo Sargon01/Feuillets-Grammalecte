@@ -3,7 +3,6 @@ import path from "node:path";
 import process from "node:process";
 import { builtinModules } from "node:module";
 import { buildArchiveBase64 } from "./scripts/build-grammalecte-archive.mjs";
-import { buildWorkerSource } from "./scripts/build-grammalecte-worker.mjs";
 
 const builtins = [...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
 
@@ -20,11 +19,6 @@ const embedGrammalecte = {
   name: "embed-grammalecte",
   setup(build) {
     const placeholder = path.resolve("src/grammalecte-archive.ts");
-    const workerPlaceholder = path.resolve("src/grammalecte-worker-source.ts");
-    build.onLoad({ filter: /grammalecte-worker-source\.ts$/ }, (args) => {
-      if (path.resolve(args.path) !== workerPlaceholder) return null;
-      return { contents: `export const GRAMMALECTE_WORKER_SOURCE = ${JSON.stringify(buildWorkerSource("resources/grammalecte"))};`, loader: "ts" };
-    });
     build.onLoad({ filter: /grammalecte-archive\.ts$/ }, (args) => {
       if (path.resolve(args.path) !== placeholder) return null;
       const { base64, files, cached, packedBytes } = buildArchiveBase64("resources/grammalecte");

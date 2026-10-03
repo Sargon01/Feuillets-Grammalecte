@@ -18,32 +18,12 @@
  * dev` ne la refasse pas à chaque rebuild. */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { brotliCompressSync, constants } from "node:zlib";
-
-/** Fichiers exclus : documentation, rien que le moteur ne lit. */
-const EXCLUDED = new Set(["README.txt"]);
+import { GRAMMALECTE_WORKER_RESOURCE_FILES } from "../src/grammalecte-worker-files.ts";
 
 const CACHE_DIR = ".cache";
-
-function listFiles(root) {
-  const found = [];
-  const walk = (dir) => {
-    for (const entry of readdirSync(dir).sort()) {
-      const full = path.join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (EXCLUDED.has(entry)) continue;
-      // Chemins POSIX dans l'archive : ce sont des clés, pas des chemins disque.
-      found.push(path.relative(root, full).split(path.sep).join("/"));
-    }
-  };
-  walk(root);
-  return found;
-}
 
 export class GrammalecteSourcesMissingError extends Error {
   constructor(resourcesDir) {
@@ -63,7 +43,7 @@ export function buildArchiveBase64(resourcesDir, { cacheDir = CACHE_DIR } = {}) 
     throw new GrammalecteSourcesMissingError(resourcesDir);
   }
 
-  const names = listFiles(resourcesDir);
+  const names = [...GRAMMALECTE_WORKER_RESOURCE_FILES];
   const buffers = names.map((name) => readFileSync(path.join(resourcesDir, ...name.split("/"))));
 
   const fingerprint = createHash("sha256");

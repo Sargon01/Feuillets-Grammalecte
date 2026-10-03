@@ -10,8 +10,9 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { brotliCompressSync } from "node:zlib";
 import { decodeArchive, GrammalecteArchiveError } from "../src/grammalecte-assets.ts";
+import { buildGrammalecteWorkerSource, GrammalecteWorkerAssemblyError } from "../src/grammalecte-worker-builder.ts";
+import { GRAMMALECTE_WORKER_DATA_FILES, GRAMMALECTE_WORKER_RESOURCE_FILES, GRAMMALECTE_WORKER_SCRIPT_FILES } from "../src/grammalecte-worker-files.ts";
 import { buildArchiveBase64 } from "../scripts/build-grammalecte-archive.mjs";
-import { buildWorkerSource } from "../scripts/build-grammalecte-worker.mjs";
 
 const RESOURCES_DIR = path.resolve(import.meta.dirname, "..", "resources", "grammalecte");
 const HAS_RESOURCES = existsSync(path.join(RESOURCES_DIR, "graphspell", "_dictionaries", "fr-classic.json"));
@@ -65,9 +66,9 @@ test("archive : données illisibles — erreur explicite, jamais un plantage nu"
 
 /* --------------------- moteur réel (si disponible) ------------------- */
 
-test("build : l'archive réelle contient les 21 fichiers du moteur", { skip: !HAS_RESOURCES }, () => {
+test("build : l'archive réelle contient les seules ressources du Worker", { skip: !HAS_RESOURCES }, () => {
   const { base64, files } = buildArchiveBase64(RESOURCES_DIR);
-  assert.equal(files, 21, "17 scripts + 3 fichiers de données + le dictionnaire");
+  assert.equal(files, GRAMMALECTE_WORKER_RESOURCE_FILES.length);
 
   const assets = decodeArchive(base64);
   for (const required of [
@@ -82,22 +83,23 @@ test("build : l'archive réelle contient les 21 fichiers du moteur", { skip: !HA
   assert.equal(assets.has("README.txt"), false, "la documentation n'est pas embarquée");
 });
 
-test("worker : les sources et données du moteur sont intégrées statiquement", { skip: !HAS_RESOURCES }, () => {
-  const source = buildWorkerSource(RESOURCES_DIR);
+test("worker : les sources sont assemblées à partir de l'archive", { skip: !HAS_RESOURCES }, () => {
+  const { base64 } = buildArchiveBase64(RESOURCES_DIR);
+  const source = buildGrammalecteWorkerSource(decodeArchive(base64));
   assert.match(source, /gc_engine\.load/);
   assert.match(source, /fr-classic/);
   assert.doesNotMatch(source, /node:vm|require\(["']vm["']\)|new Function|eval\s*\(/);
 });
 
-test("worker : les suggestions parcourent tous les groupes avec la limite demandée sans mécanisme d'exécution dynamique", () => {
-  const runtime = readFileSync(path.resolve(import.meta.dirname, "..", "scripts", "grammalecte-worker-runtime.js"), "utf8");
-  assert.match(runtime, /for \(const group of spellChecker\.suggest\(word, maxSuggestions\)\)/);
-  assert.doesNotMatch(runtime, /suggest\(word\)\.next\(\)\.value/);
-  assert.doesNotMatch(runtime, /node:vm|require\(["']vm["']\)|new Function|eval\s*\(/);
+test("build : aucune source Worker brute n'est injectée dans le bundle", () => {
+  const buildConfig = readFileSync(path.resolve(import.meta.dirname, "..", "esbuild.config.mjs"), "utf8");
+  assert.doesNotMatch(buildConfig, /buildWorkerSource|grammalecte-worker-source/);
+  assert.match(buildConfig, /GRAMMALECTE_ARCHIVE_BASE64/);
 });
 
-test("worker : les détections CommonJS de Grammalecte sont masquées dans la portée assemblée", { skip: !HAS_RESOURCES }, () => {
-  const source = buildWorkerSource(RESOURCES_DIR);
+test("worker : l'ordre de chargement et le masque CommonJS sont préservés", { skip: !HAS_RESOURCES }, () => {
+  const { base64 } = buildArchiveBase64(RESOURCES_DIR);
+  const source = buildGrammalecteWorkerSource(decodeArchive(base64));
   const wrapper = source.indexOf("const process = undefined;");
   const firstEngineCheck = source.indexOf("typeof(process) !== 'undefined'");
 
@@ -107,4 +109,21 @@ test("worker : les détections CommonJS de Grammalecte sont masquées dans la po
   assert.match(source, /const exports = undefined;/);
   assert.match(source, /const module = undefined;/);
   assert.match(source, /\n\}\)\(\);$/);
+  let previous = -1;
+  for (const name of GRAMMALECTE_WORKER_SCRIPT_FILES) {
+    const current = source.indexOf(`// ${name}\n`);
+    assert.ok(current > previous, `${name} respecte l'ordre de chargement`);
+    previous = current;
+  }
+});
+
+test("worker : une ressource requise manquante produit une erreur contrôlée", () => {
+  const assets = new Map<string, string>(GRAMMALECTE_WORKER_RESOURCE_FILES.map((name) => [name, ""]));
+  assets.delete(GRAMMALECTE_WORKER_SCRIPT_FILES[0]);
+  assert.throws(() => buildGrammalecteWorkerSource(assets), /graphspell\/helpers\.js/);
+
+  assets.set(GRAMMALECTE_WORKER_SCRIPT_FILES[0], "");
+  assets.delete(GRAMMALECTE_WORKER_DATA_FILES[3]);
+  assert.throws(() => buildGrammalecteWorkerSource(assets), /fr-classic\.json/);
+  assert.throws(() => buildGrammalecteWorkerSource(new Map()), GrammalecteWorkerAssemblyError);
 });
