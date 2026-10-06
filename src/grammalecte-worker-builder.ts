@@ -60,7 +60,9 @@ function analyse(sourceText, options) {
   gc_engine.setOption("redon2", options.detectRepetitions);
   const issues = [];
   let paragraphOffset = 0;
-  for (const paragraph of text.getParagraph(sourceText)) {
+  // Grammalecte's getParagraph normalizes CRLF/CR before splitting. Keep
+  // original UTF-16 positions, including the CR in a CRLF paragraph.
+  for (const paragraph of sourceText.split("\n")) {
     if (paragraph.trim() !== "") {
       for (const error of gc_engine.parse(paragraph, "FR", false, null, false)) {
         issues.push({ kind: "grammar", error, paragraphOffset });

@@ -18,6 +18,7 @@ import {
   type GrammalecteEngine,
 } from "./grammalecte-adapter.ts";
 import { GrammalecteWorkerRunner } from "./grammalecte-worker-runner.ts";
+import { maskMarkdownForAnalysis } from "./markdown-mask.ts";
 import type { GrammalecteSettings } from "./settings.ts";
 
 export const PROVIDER_ID = "grammalecte";
@@ -90,7 +91,9 @@ export class GrammalecteProvider implements TextAnalysisProvider {
   }
 
   async analyze(input: TextAnalysisInput): Promise<TextAnalysisIssue[]> {
-    const text = typeof input?.text === "string" ? input.text : "";
+    // Feuillets prepares some Markdown already, but Obsidian/Pandoc syntax
+    // can remain. Mask it before either engine branch; offsets stay unchanged.
+    const text = maskMarkdownForAnalysis(typeof input?.text === "string" ? input.text : "");
     if (text.trim() === "") return [];
 
     const settings = this.getSettings();
@@ -120,7 +123,7 @@ export class GrammalecteProvider implements TextAnalysisProvider {
   }
 
   async analyzeLinguistics(input: TextAnalysisInput): Promise<LinguisticAnalysisResult | null> {
-    const text = typeof input?.text === "string" ? input.text : "";
+    const text = maskMarkdownForAnalysis(typeof input?.text === "string" ? input.text : "");
     if (text.trim() === "") return null;
 
     return this.loadEngine
