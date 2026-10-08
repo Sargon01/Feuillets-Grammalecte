@@ -6,6 +6,19 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.1.2] - 2026-10-08
+
+### Corrigé
+
+- Masquage de la syntaxe Markdown, Obsidian et Pandoc avant l'analyse orthographique et grammaticale, sans masquer le texte destiné à être corrigé.
+- Conservation des positions exactes des caractères pour que les diagnostics correspondent au texte original dans Feuillets.
+- Correction du calcul des positions des erreurs lorsque les documents utilisent des fins de ligne CRLF.
+- Application du masquage à l'analyse linguistique également.
+
+### Tests
+
+- Ajout de tests de régression sur le masquage Markdown, le moteur Grammalecte, les positions des diagnostics et les documents complexes.
+
 ## [1.1.1] - 2026-10-03
 
 ### Changed
